@@ -356,7 +356,7 @@ internal sealed class KioskForm : Form
             ConfigureBrowser();
             var eventPageScript = ActivityAndCompletionScript.Replace(
                 "__SURGE_MOBILE_LOGO_DATA_URL__",
-                GetApplicationLogoDataUrl(),
+                GetOfficialWordmarkDataUrl(),
                 StringComparison.Ordinal);
             await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(eventPageScript);
 
@@ -948,6 +948,25 @@ internal sealed class KioskForm : Form
         }
     }
 
+    private static string GetOfficialWordmarkDataUrl()
+    {
+        try
+        {
+            using var stream = Assembly.GetExecutingAssembly()
+                .GetManifestResourceStream("SurgeWordmarkWhite.svg");
+            if (stream is null)
+                return string.Empty;
+
+            using var copy = new MemoryStream();
+            stream.CopyTo(copy);
+            return "data:image/svg+xml;base64," + Convert.ToBase64String(copy.ToArray());
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
     private string BuildThankYouHtml(DateTime? scheduleTimeOverride = null)
     {
         var resetSeconds = Math.Max(12, _settings.CompletionResetSeconds);
@@ -1474,6 +1493,7 @@ internal sealed class KioskForm : Form
         (() => {
           if (window.__surgeMobileKioskInstalled) return;
           window.__surgeMobileKioskInstalled = true;
+          const officialWordmark = '__SURGE_MOBILE_LOGO_DATA_URL__';
 
           let lastActivityMessage = 0;
           const postActivity = () => {
@@ -1490,6 +1510,51 @@ internal sealed class KioskForm : Form
           window.surgeKiosk = Object.freeze({
             reset: () => window.chrome.webview.postMessage("reset-event")
           });
+
+          const applyOfficialSurgeBranding = () => {
+            if (!document.head || !document.body ||
+                location.hostname.toLowerCase() !== 'surge-guest-kiosk.m404ntfd.chatgpt.site') return;
+
+            if (!document.getElementById('surge-mobile-official-branding')) {
+              const style = document.createElement('style');
+              style.id = 'surge-mobile-official-branding';
+              style.textContent = `
+                :root {
+                  --ink: #0b0023 !important;
+                  --canvas: #fbf5ff !important;
+                  --purple: #b744ff !important;
+                  --purple-bright: #cd7eff !important;
+                  --purple-dark: #0b0023 !important;
+                  --electric: #acd037 !important;
+                  --yellow: #ff8a3c !important;
+                }
+                .topbar { background: #0b0023 !important; border-bottom-color: #b744ff !important; }
+                .brand-logo { width: 210px !important; height: 54px !important; object-fit: contain !important; border: 0 !important; border-radius: 0 !important; }
+                .hero { background: radial-gradient(circle at 86% 18%, rgba(183,68,255,.40), transparent 30%), linear-gradient(120deg,#0b0023 0%,#2f075d 54%,#7800c4 100%) !important; }
+                .kicker { color: #acd037 !important; }
+                .section-number, .modal-select { background: linear-gradient(135deg,#b744ff,#7800c4) !important; }
+                .primary-button { background: #b744ff !important; color: #fff !important; }
+                .submit-panel, footer { background: #0b0023 !important; }
+              `;
+              document.head.appendChild(style);
+            }
+
+            const logo = document.querySelector('.brand-logo');
+            if (logo && officialWordmark && logo.src !== officialWordmark) {
+              logo.src = officialWordmark;
+              logo.alt = 'Surge Entertainment logo';
+              logo.removeAttribute('referrerpolicy');
+            }
+          };
+
+          if (document.readyState === 'loading')
+            document.addEventListener('DOMContentLoaded', applyOfficialSurgeBranding, { once: true });
+          else
+            applyOfficialSurgeBranding();
+
+          const brandingObserver = new MutationObserver(applyOfficialSurgeBranding);
+          brandingObserver.observe(document.documentElement, { childList: true, subtree: true });
+          setTimeout(() => brandingObserver.disconnect(), 15000);
         })();
         """;
 

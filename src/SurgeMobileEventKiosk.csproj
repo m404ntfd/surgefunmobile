@@ -23,4 +23,10 @@
   <ItemGroup Condition="'$(UpdateRepositoryUrl)' != ''">
     <AssemblyMetadata Include="UpdateRepositoryUrl" Value="$(UpdateRepositoryUrl)" />
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\assets\SurgeWordmarkWhite.svg">
+      <LogicalName>SurgeWordmarkWhite.svg</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>
