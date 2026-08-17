@@ -1,0 +1,116 @@
+name: Publish Kiosk Update
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kiosk-release
+  cancel-in-progress: false
+
+jobs:
+  publish-windows-release:
+    name: Build and publish Windows release
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Create unique application version
+        id: version
+        shell: pwsh
+        run: |
+          $projectText = Get-Content -LiteralPath "src/SurgeMobileEventKiosk.csproj" -Raw
+          if ($projectText -notmatch '<Version>(\d+)\.(\d+)\.\d+</Version>') {
+            throw 'The project file must contain a three-part Version value.'
+          }
+          $releaseVersion = "$($Matches[1]).$($Matches[2]).${{ github.run_number }}"
+          "value=$releaseVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Restore packages
+        run: dotnet restore src/SurgeMobileEventKiosk.csproj
+
+      - name: Publish kiosk application
+        shell: pwsh
+        run: |
+          dotnet publish src/SurgeMobileEventKiosk.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            -p:Version=${{ steps.version.outputs.value }} `
+            -p:UpdateRepositoryUrl=https://github.com/${{ github.repository }} `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=None `
+            --output publish
+
+      - name: Install matching Velopack command-line tool
+        run: dotnet tool install --global vpk --version 1.2.0
+
+      - name: Download prior release information
+        shell: pwsh
+        run: |
+          $latestRelease = Invoke-RestMethod `
+            -Uri "https://api.github.com/repos/${{ github.repository }}/releases/latest" `
+            -Headers @{ Authorization = "Bearer ${{ secrets.GITHUB_TOKEN }}" } `
+            -SkipHttpErrorCheck
+
+          if ($latestRelease.status -eq 404 -or -not $latestRelease.tag_name) {
+            Write-Host "No earlier release exists. Building the first full installer."
+          }
+          else {
+            vpk download github `
+              --repoUrl https://github.com/${{ github.repository }} `
+              --token "${{ secrets.GITHUB_TOKEN }}" `
+              --channel win `
+              --outputDir Releases
+          }
+
+      - name: Build Velopack installer and update packages
+        shell: pwsh
+        run: |
+          vpk pack `
+            --packId SurgeMobile.EventKiosk `
+            --packVersion ${{ steps.version.outputs.value }} `
+            --packDir publish `
+            --mainExe SurgeMobileEventKiosk.exe `
+            --packTitle "Surge Mobile Event Kiosk" `
+            --packAuthors "Surge Entertainment" `
+            --icon assets/SurgeMobile.ico `
+            --runtime win-x64 `
+            --channel win `
+            --outputDir Releases
+
+      - name: Publish GitHub release
+        shell: pwsh
+        run: |
+          vpk upload github `
+            --repoUrl https://github.com/${{ github.repository }} `
+            --token "${{ secrets.GITHUB_TOKEN }}" `
+            --publish `
+            --releaseName "Surge Mobile Event Kiosk ${{ steps.version.outputs.value }}" `
+            --tag "v${{ steps.version.outputs.value }}" `
+            --channel win `
+            --outputDir Releases
+
+      - name: Keep installer as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Surge-Mobile-Event-Kiosk-${{ steps.version.outputs.value }}
+          path: |
+            Releases/*-Setup.exe
+            Releases/releases.*.json
+          if-no-files-found: error
