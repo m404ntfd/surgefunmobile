@@ -199,6 +199,9 @@ internal static class StartupShortcutMigration
 
 internal sealed class KioskForm : Form
 {
+    private const string GuestVirtualHost = "surge-guest-kiosk.local";
+    private const string GuestPageUrl = "https://surge-guest-kiosk.local/index.html";
+    private const string ClosedPageUrl = "https://surge-guest-kiosk.local/closed.html";
     private const int WmHotKey = 0x0312;
     private const int StaffHotKeyId = 0x5347;
     private const uint ModAlt = 0x0001;
@@ -208,6 +211,10 @@ internal sealed class KioskForm : Form
 
     private readonly KioskSettings _settings;
     private readonly WebView2 _webView = new();
+    private readonly Panel _statusPanel = new();
+    private readonly Label _statusBrand = new();
+    private readonly Label _statusTitle = new();
+    private readonly Label _statusMessage = new();
     private readonly System.Windows.Forms.Timer _idleTimer = new() { Interval = 1000 };
 
     private DateTime _lastActivityUtc = DateTime.UtcNow;
@@ -238,7 +245,35 @@ internal sealed class KioskForm : Form
         _webView.DefaultBackgroundColor = Color.FromArgb(251, 245, 255);
         Controls.Add(_webView);
 
-        Load += async (_, _) => await InitializeBrowserAsync();
+        _statusPanel.Dock = DockStyle.Fill;
+        _statusPanel.BackColor = Color.FromArgb(11, 0, 35);
+        _statusPanel.Visible = true;
+        _statusPanel.Resize += (_, _) => PositionStatusLabels();
+
+        _statusBrand.AutoSize = false;
+        _statusBrand.Text = "SURGE";
+        _statusBrand.TextAlign = ContentAlignment.MiddleCenter;
+        _statusBrand.Font = new Font("Arial Black", 42, FontStyle.Bold);
+        _statusBrand.ForeColor = Color.White;
+
+        _statusTitle.AutoSize = false;
+        _statusTitle.TextAlign = ContentAlignment.MiddleCenter;
+        _statusTitle.Font = new Font("Segoe UI", 24, FontStyle.Bold);
+        _statusTitle.ForeColor = Color.FromArgb(172, 208, 55);
+
+        _statusMessage.AutoSize = false;
+        _statusMessage.TextAlign = ContentAlignment.TopCenter;
+        _statusMessage.Font = new Font("Segoe UI", 12, FontStyle.Regular);
+        _statusMessage.ForeColor = Color.FromArgb(241, 232, 246);
+
+        _statusPanel.Controls.Add(_statusBrand);
+        _statusPanel.Controls.Add(_statusTitle);
+        _statusPanel.Controls.Add(_statusMessage);
+        Controls.Add(_statusPanel);
+        _statusPanel.BringToFront();
+        ShowStatus("Loading guest information", "Preparing the kiosk for guests…", isError: false);
+
+        Shown += async (_, _) => await InitializeBrowserAsync();
         FormClosing += KioskForm_FormClosing;
         KeyDown += KioskForm_KeyDown;
         Deactivate += (_, _) =>
@@ -313,6 +348,7 @@ internal sealed class KioskForm : Form
             core.DownloadStarting += (_, args) => args.Cancel = true;
             core.PermissionRequested += (_, args) => args.State = CoreWebView2PermissionState.Deny;
             core.NavigationStarting += Core_NavigationStarting;
+            core.NavigationCompleted += Core_NavigationCompleted;
             core.WebMessageReceived += (_, args) =>
             {
                 try
@@ -328,9 +364,23 @@ internal sealed class KioskForm : Form
             core.ProcessFailed += (_, _) =>
             {
                 if (!_promptOpen)
-                    BeginInvoke(new Action(() => ShowGuestKiosk("browser recovery")));
+                {
+                    BeginInvoke(new Action(() =>
+                    {
+                        ShowStatus(
+                            "Reloading guest information",
+                            "The display was interrupted. The kiosk is recovering automatically…",
+                            isError: false);
+                        ShowGuestKiosk("browser recovery");
+                    }));
+                }
             };
 
+            var guestContentPath = PrepareGuestContent();
+            core.SetVirtualHostNameToFolderMapping(
+                GuestVirtualHost,
+                guestContentPath,
+                CoreWebView2HostResourceAccessKind.DenyCors);
             await core.AddScriptToExecuteOnDocumentCreatedAsync(ActivityScript);
             _browserReady = true;
             _idleTimer.Start();
@@ -343,13 +393,10 @@ internal sealed class KioskForm : Form
         catch (Exception ex)
         {
             KioskLog.Write("WebView initialization error: " + ex.GetType().Name + " - " + ex.Message);
-            MessageBox.Show(
-                "Microsoft Edge WebView2 is required to run the kiosk. Install or repair WebView2 and try again.\n\n" + ex.Message,
-                "Surge Guest Information Kiosk",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
-            _allowExit = true;
-            Close();
+            ShowStatus(
+                "Guest kiosk could not start",
+                "Microsoft Edge WebView2 may need to be installed or repaired. Please see a staff member.\n\nStaff shortcut: Ctrl + Alt + Shift + F12",
+                isError: true);
         }
     }
 
@@ -360,9 +407,42 @@ internal sealed class KioskForm : Form
         if (e.Uri.StartsWith("about:blank", StringComparison.OrdinalIgnoreCase))
             return;
 
+        if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri) &&
+            string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(uri.Host, GuestVirtualHost, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         // The guest kiosk is intentionally self-contained. Attraction links are
         // informational citations and external browsing is disabled in kiosk mode.
         e.Cancel = true;
+    }
+
+    private void Core_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+    {
+        var source = _webView.Source?.ToString() ?? string.Empty;
+        if (!Uri.TryCreate(source, UriKind.Absolute, out var uri) ||
+            !string.Equals(uri.Host, GuestVirtualHost, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (e.IsSuccess && e.HttpStatusCode < 400)
+        {
+            _statusPanel.Visible = false;
+            _webView.Visible = true;
+            _webView.Focus();
+            MarkActivity();
+            KioskLog.Write("Guest kiosk navigation completed successfully.");
+            return;
+        }
+
+        KioskLog.Write($"Guest kiosk navigation failed: {e.WebErrorStatus}; HTTP {e.HttpStatusCode}.");
+        ShowStatus(
+            "Guest information unavailable",
+            "The kiosk screen could not be opened. Please see a staff member at the front desk.\n\nStaff shortcut: Ctrl + Alt + Shift + F12",
+            isError: true);
     }
 
     private void ShowGuestKiosk(string reason)
@@ -372,7 +452,8 @@ internal sealed class KioskForm : Form
 
         _showingClosedPage = false;
         _lastActivityUtc = DateTime.UtcNow;
-        _webView.CoreWebView2.NavigateToString(ReadEmbeddedText("GuestKiosk.html"));
+        ShowStatus("Loading guest information", "Preparing a fresh screen for the next guest…", isError: false);
+        _webView.CoreWebView2.Navigate(GuestPageUrl + "?session=" + DateTime.UtcNow.Ticks);
         KioskLog.Write("Guest kiosk loaded: " + reason + ".");
     }
 
@@ -382,7 +463,8 @@ internal sealed class KioskForm : Form
             return;
 
         _showingClosedPage = true;
-        _webView.CoreWebView2.NavigateToString(BuildClosedPageHtml());
+        ShowStatus("Updating kiosk status", "Please wait…", isError: false);
+        _webView.CoreWebView2.Navigate(ClosedPageUrl + "?session=" + DateTime.UtcNow.Ticks);
         KioskLog.Write("Staff closed page displayed.");
     }
 
@@ -514,6 +596,46 @@ internal sealed class KioskForm : Form
     }
 
     private void MarkActivity() => _lastActivityUtc = DateTime.UtcNow;
+
+    private static string PrepareGuestContent()
+    {
+        var contentFolder = Path.Combine(KioskSettings.DataFolder, "GuestContent");
+        Directory.CreateDirectory(contentFolder);
+        File.WriteAllText(
+            Path.Combine(contentFolder, "index.html"),
+            ReadEmbeddedText("GuestKiosk.html"),
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        File.WriteAllText(
+            Path.Combine(contentFolder, "closed.html"),
+            BuildClosedPageHtml(),
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        return contentFolder;
+    }
+
+    private void ShowStatus(string title, string message, bool isError)
+    {
+        _statusTitle.Text = title;
+        _statusTitle.ForeColor = isError
+            ? Color.FromArgb(255, 138, 60)
+            : Color.FromArgb(172, 208, 55);
+        _statusMessage.Text = message;
+        _webView.Visible = false;
+        _statusPanel.Visible = true;
+        _statusPanel.BringToFront();
+        PositionStatusLabels();
+    }
+
+    private void PositionStatusLabels()
+    {
+        var width = Math.Max(520, _statusPanel.ClientSize.Width);
+        var centerY = Math.Max(240, _statusPanel.ClientSize.Height / 2);
+        var contentWidth = Math.Min(900, width - 80);
+        var left = Math.Max(20, (width - contentWidth) / 2);
+
+        _statusBrand.Bounds = new Rectangle(left, centerY - 175, contentWidth, 80);
+        _statusTitle.Bounds = new Rectangle(left, centerY - 78, contentWidth, 56);
+        _statusMessage.Bounds = new Rectangle(left, centerY, contentWidth, 110);
+    }
 
     private static string ReadEmbeddedText(string resourceName)
     {
