@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Surge Mobile Event Kiosk Installer
+title Surge Guest Information Kiosk Installer
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Surge-Kiosk.ps1"
 if errorlevel 1 (
   echo.

@@ -1,4 +1,4 @@
-name: Publish Kiosk Update
+name: Publish Guest Information Kiosk Update
 
 on:
   push:
@@ -87,7 +87,7 @@ jobs:
             --packVersion ${{ steps.version.outputs.value }} `
             --packDir publish `
             --mainExe SurgeMobileEventKiosk.exe `
-            --packTitle "Surge Mobile Event Kiosk" `
+            --packTitle "Surge Guest Information Kiosk" `
             --packAuthors "Surge Entertainment" `
             --icon assets/SurgeMobile.ico `
             --runtime win-x64 `
@@ -101,7 +101,7 @@ jobs:
             --repoUrl https://github.com/${{ github.repository }} `
             --token "${{ secrets.GITHUB_TOKEN }}" `
             --publish `
-            --releaseName "Surge Mobile Event Kiosk ${{ steps.version.outputs.value }}" `
+            --releaseName "Surge Guest Information Kiosk ${{ steps.version.outputs.value }}" `
             --tag "v${{ steps.version.outputs.value }}" `
             --channel win `
             --outputDir Releases
@@ -109,7 +109,7 @@ jobs:
       - name: Keep installer as a workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Surge-Mobile-Event-Kiosk-${{ steps.version.outputs.value }}
+          name: Surge-Guest-Information-Kiosk-${{ steps.version.outputs.value }}
           path: |
             Releases/*-Setup.exe
             Releases/releases.*.json

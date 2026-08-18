@@ -7,7 +7,7 @@ $exePaths = @(
 )
 
 Write-Host ''
-Write-Host 'Surge Mobile Event Kiosk - Reset Staff Password' -ForegroundColor Cyan
+Write-Host 'Surge Guest Information Kiosk - Reset Staff Password' -ForegroundColor Cyan
 Write-Host ''
 
 if (Get-Process -Name 'SurgeMobileEventKiosk' -ErrorAction SilentlyContinue) {
@@ -27,7 +27,7 @@ if (Test-Path $settingsPath) {
     $settings | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $settingsPath -Encoding UTF8
 }
 
-Write-Host 'The staff password was cleared. Advertisement schedules and other kiosk settings were kept.' -ForegroundColor Green
+Write-Host 'The staff password was cleared. The kiosk closed setting was kept.' -ForegroundColor Green
 Write-Host 'The kiosk will ask for a new password.' -ForegroundColor Green
 $exePath = $exePaths | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if ($exePath) {

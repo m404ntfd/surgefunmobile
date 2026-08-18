@@ -1,10 +1,8 @@
-SURGE MOBILE EVENT KIOSK FOR WINDOWS
-====================================
+SURGE GUEST INFORMATION KIOSK FOR WINDOWS
+=========================================
 
-This repository builds the full-screen Windows kiosk for the Surge Entertainment
-Mobile event request experience:
-
-https://surge-guest-kiosk.m404ntfd.chatgpt.site/
+This repository builds the full-screen Windows version of the original Surge
+Guest Information Kiosk for the Mobile, Alabama location.
 
 Source repository and automatic update feed:
 
@@ -15,17 +13,35 @@ Latest Windows installer:
 https://github.com/m404ntfd/surgefunmobile/releases/latest
 
 
+THE GUEST EXPERIENCE
+--------------------
+
+The application contains the original touch-friendly kiosk experience:
+
+* Surge Mobile event information and guest contact details.
+* Food and beverage preferences.
+* Attraction information for Laser Tag, Mini Golf, Sports Simulators, Ropes
+  Course, Go Karting, XD Dark Ride, Bowling, Pickleball, Strike Arena, and
+  party rooms.
+* Activity selection and a complete on-screen review.
+* Official Surge logo and colors.
+
+The complete guest experience is built into the application. It does not rely
+on a separate website being available, so guests can continue viewing and
+preparing requests if the internet connection is temporarily unavailable.
+
+
 QUICK INSTALL
 -------------
 
 1. Open the latest-release link above.
-2. Download SurgeMobile.EventKiosk-Setup.exe.
-3. Exit an older copy of the kiosk with Ctrl + Alt + Shift + F12.
+2. Download SurgeMobile.EventKiosk-win-Setup.exe.
+3. Exit an older copy with Ctrl + Alt + Shift + F12.
 4. Run the Setup file.
 5. On a new computer, create a 4-8 digit numerical staff password.
 
-The installer creates the Surge Mobile Event Kiosk application. The optional
-Install-Surge-Kiosk.cmd helper can also create a Windows startup shortcut.
+The optional Install-Surge-Kiosk.cmd helper can also create a Windows startup
+shortcut.
 
 
 AUTOMATIC UPDATES
@@ -36,29 +52,11 @@ starts. If a newer release is available, it downloads the update, installs it,
 and restarts before the guest screen opens.
 
 Staff can also press Ctrl + Alt + Shift + F12, open Staff Settings, and select
-"Check for Kiosk Update."
+"Check for kiosk update."
 
-Every push to the main branch runs the included GitHub Actions release workflow.
-The workflow builds a self-contained Windows application, creates a unique
-version from the Version major/minor values plus the Actions run number, and
-publishes the Velopack installer and update packages. No GitHub password or token
-is stored in the kiosk application.
-
-
-OFFICIAL SURGE BRANDING
------------------------
-
-The kiosk uses Surge's official angular wordmark and the core colors published
-by surgefun.com:
-
-* Night purple: #0B0023
-* Electric purple: #B744FF
-* Light purple: #CD7EFF
-* Surge green: #ACD037
-* Orange accent: #FF8A3C
-* Light background: #FBF5FF
-
-The official logo files used by the application are stored in the assets folder.
+Every push to the main branch runs the included GitHub Actions workflow. The
+workflow builds a self-contained Windows application, creates the next version,
+and publishes the Velopack installer and update packages.
 
 
 STAFF SETTINGS
@@ -68,40 +66,28 @@ Press all four keys together:
 
 Ctrl + Alt + Shift + F12
 
-Enter the staff password to open the protected menu. Staff can:
+After entering the staff password, staff can:
 
-* Exit the kiosk.
-* Check the live Surge event request site connection.
-* Check GitHub for a kiosk update and install it immediately.
-* Preview browser date and time without changing the Windows clock.
-* Return the browser to live date and time.
-* Manage scheduled JPG advertisements.
-* Preview the branded thank-you page and active advertisements.
-* Turn the guest-facing Event Request Station Closed page on or off.
-* Change the staff password.
 * Return to the kiosk.
+* Reset the guest screen and clear the current on-screen request.
+* Display or remove the Guest Information Kiosk Closed page.
+* Check for and install a GitHub update.
+* Change the staff password.
+* Exit the application.
 
-The closed-page setting is retained after the kiosk or computer restarts. The
-staff shortcut continues to work while either closed page is displayed.
+The closed setting remains in effect after the kiosk or computer restarts. The
+staff shortcut continues to work while the closed page is displayed.
 
 
-WHAT THE KIOSK DOES
--------------------
+KIOSK PROTECTION
+----------------
 
-* Opens the Surge Mobile event request experience in a borderless full-screen
-  WebView2 window.
-* Restricts navigation to the approved Surge kiosk address.
-* Blocks pop-ups, downloads, permissions, browser menus, developer tools, and
-  normal browser shortcut keys.
-* Uses a password-protected staff settings menu.
-* Automatically checks GitHub Releases for signed Velopack updates.
-* Resets after three minutes without guest activity.
-* Clears cookies, local storage, cache, and other site data during a reset so the
-  previous guest's information is not left for the next guest.
-* Replaces connection failures with an official Surge-branded closed page and
-  retries the site every 15 seconds.
-* Lets staff deliberately display a separate closed page without connection-error
-  wording.
+* Borderless, full-screen display.
+* Password-protected staff settings.
+* External navigation, pop-ups, downloads, browser menus, developer tools, and
+  normal browser shortcuts are disabled.
+* The guest screen automatically resets after three minutes without activity.
+* The current guest's entries are cleared during every reset.
 
 
 RESET A FORGOTTEN STAFF PASSWORD
@@ -112,38 +98,25 @@ RESET A FORGOTTEN STAFF PASSWORD
 3. Confirm the reset.
 4. Start the kiosk and create a new staff password.
 
-The reset tool keeps the other kiosk settings and advertisement schedules.
-
-
-REMOVE THE KIOSK
-----------------
-
-Right-click Uninstall-Surge-Kiosk.ps1 and choose "Run with PowerShell." The
-uninstaller asks before removing the application, shortcuts, settings, and local
-WebView browsing data.
-
 
 WINDOWS REQUIREMENTS
 --------------------
 
 * Windows 10 or Windows 11, 64-bit
-* Internet connection
 * Microsoft Edge WebView2 Runtime
+* Internet connection for automatic application updates
 
 The installed application is self-contained and does not require the .NET SDK.
-The .NET 8 SDK is needed only by GitHub Actions or a developer building source.
 
 
-PUBLISHING A REMOTE UPDATE
---------------------------
+PUBLISHING AN UPDATE
+--------------------
 
 1. Make and test the kiosk change.
-2. If the release represents a new major or minor line, update the Version value
-   in src\SurgeMobileEventKiosk.csproj. The third version number is generated by
-   GitHub Actions.
-3. Commit and push the change to main.
-4. Wait for the "Publish Kiosk Update" workflow to finish.
-5. Restart a kiosk or use "Check for Kiosk Update" in Staff Settings.
+2. Commit and push the change to main.
+3. Wait for the "Publish Guest Information Kiosk Update" workflow to finish.
+4. Restart a kiosk or use "Check for kiosk update" in Staff Settings.
 
-For a public unattended computer, use a dedicated standard Windows account and
-Windows Assigned Access in addition to the application's browser restrictions.
+The existing internal application and package names are intentionally retained
+so computers already running version 1.0.2 can update to this guest-information
+edition automatically.

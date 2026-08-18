@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 Write-Host ''
-Write-Host 'Surge Mobile Event Kiosk - Uninstall' -ForegroundColor Cyan
+Write-Host 'Surge Guest Information Kiosk - Uninstall' -ForegroundColor Cyan
 Write-Host ''
 
 $answer = Read-Host 'Remove the kiosk application, shortcuts, settings, and local browsing data? (Y/N)'
@@ -19,6 +19,9 @@ $velopackRoot = Join-Path $env:LOCALAPPDATA 'SurgeMobile.EventKiosk'
 $velopackUpdater = Join-Path $velopackRoot 'Update.exe'
 $legacyInstallRoot = Join-Path $env:LOCALAPPDATA 'SurgeMobileEventKiosk'
 $shortcutPaths = @(
+    (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Surge Guest Information Kiosk.lnk'),
+    (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Surge Guest Information Kiosk.lnk'),
+    (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\Surge Guest Information Kiosk.lnk'),
     (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Surge Mobile Event Kiosk.lnk'),
     (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Surge Mobile Event Kiosk.lnk'),
     (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\Surge Mobile Event Kiosk.lnk')
@@ -41,4 +44,4 @@ if (Test-Path -LiteralPath $legacyInstallRoot) {
     Remove-Item -LiteralPath $legacyInstallRoot -Recurse -Force
 }
 
-Write-Host 'The event kiosk was removed from this Windows account.' -ForegroundColor Green
+Write-Host 'The guest information kiosk was removed from this Windows account.' -ForegroundColor Green

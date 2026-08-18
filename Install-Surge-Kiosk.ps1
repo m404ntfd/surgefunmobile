@@ -1,13 +1,13 @@
 $ErrorActionPreference = 'Stop'
 
 Write-Host ''
-Write-Host 'Surge Mobile Event Kiosk Installer' -ForegroundColor Magenta
-Write-Host '----------------------------------' -ForegroundColor Cyan
+Write-Host 'Surge Guest Information Kiosk Installer' -ForegroundColor Magenta
+Write-Host '---------------------------------------' -ForegroundColor Cyan
 Write-Host ''
 
 $running = Get-Process -Name 'SurgeMobileEventKiosk' -ErrorAction SilentlyContinue
 if ($running) {
-    throw 'The event kiosk is running. Exit it with Ctrl + Alt + Shift + F12, then run this installer again.'
+    throw 'The guest information kiosk is running. Exit it with Ctrl + Alt + Shift + F12, then run this installer again.'
 }
 
 $searchFolders = @($PSScriptRoot, (Join-Path $PSScriptRoot 'Releases'))
@@ -41,13 +41,17 @@ if (-not (Test-Path -LiteralPath $installedExe)) {
     throw 'Installation completed, but the installed kiosk application could not be found.'
 }
 
-$startupShortcutPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\Surge Mobile Event Kiosk.lnk'
+$oldStartupShortcutPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\Surge Mobile Event Kiosk.lnk'
+$startupShortcutPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\Surge Guest Information Kiosk.lnk'
 $previousStartupPreference = Test-Path -LiteralPath $startupShortcutPath
+if (-not $previousStartupPreference) {
+    $previousStartupPreference = Test-Path -LiteralPath $oldStartupShortcutPath
+}
 if ($previousStartupPreference) {
     $startupAnswer = 'Y'
 }
 else {
-    $startupAnswer = Read-Host 'Start the event kiosk automatically when this Windows account signs in? (Y/N)'
+    $startupAnswer = Read-Host 'Start the guest information kiosk automatically when this Windows account signs in? (Y/N)'
 }
 
 if ($startupAnswer -match '^[Yy]') {
@@ -55,11 +59,17 @@ if ($startupAnswer -match '^[Yy]') {
     $shortcut = $shell.CreateShortcut($startupShortcutPath)
     $shortcut.TargetPath = $installedExe
     $shortcut.WorkingDirectory = Split-Path -Parent $installedExe
-    $shortcut.Description = 'Automatically start the Surge Mobile event kiosk'
+    $shortcut.Description = 'Automatically start the Surge guest information kiosk'
     $shortcut.Save()
+    if (Test-Path -LiteralPath $oldStartupShortcutPath) {
+        Remove-Item -LiteralPath $oldStartupShortcutPath -Force
+    }
 }
 elseif (Test-Path -LiteralPath $startupShortcutPath) {
     Remove-Item -LiteralPath $startupShortcutPath -Force
+}
+if ($startupAnswer -notmatch '^[Yy]' -and (Test-Path -LiteralPath $oldStartupShortcutPath)) {
+    Remove-Item -LiteralPath $oldStartupShortcutPath -Force
 }
 
 Write-Host ''

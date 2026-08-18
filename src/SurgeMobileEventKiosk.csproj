@@ -6,13 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>SurgeMobileEventKiosk</AssemblyName>
-    <RootNamespace>SurgeMobileEventKiosk</RootNamespace>
-    <AssemblyTitle>Surge Mobile Event Kiosk</AssemblyTitle>
+    <RootNamespace>SurgeGuestInformationKiosk</RootNamespace>
+    <AssemblyTitle>Surge Guest Information Kiosk</AssemblyTitle>
     <ApplicationIcon>..\assets\SurgeMobile.ico</ApplicationIcon>
     <Version>1.0.0</Version>
     <Authors>Surge Entertainment</Authors>
-    <Product>Surge Mobile Event Kiosk</Product>
-    <Description>Full-screen Surge Mobile event request kiosk with staff controls and automatic GitHub updates.</Description>
+    <Product>Surge Guest Information Kiosk</Product>
+    <Description>Full-screen Surge guest information kiosk with built-in content, staff controls, and automatic GitHub updates.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\assets\GuestKiosk.html">
+      <LogicalName>GuestKiosk.html</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\assets\SurgeWordmarkWhite.svg">
       <LogicalName>SurgeWordmarkWhite.svg</LogicalName>
     </EmbeddedResource>
